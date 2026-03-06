@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Local env files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# If you ever create host-mapped storage folders
+data/
+
+# Internal dev notes (not part of deliverables)
+docs/30_contracts/
+docs/rules/
+docs/SESSION_BOOTSTRAP.md
+docs/00_master/12_AGENT_OPERATING_MANUAL.md
+docs/00_master/15_NEXT_CONTRACTS.md
+docs/00_master/08_WORKFLOW.md
+
+# Frontend build artifacts
+Frontend/node_modules/
+Frontend/dist/
+
+# Test artifacts
+smoke_test.py
+manual_tests.py
+demo.sh
+nul
+
+# AI artifacts (never commit)
+CLAUDE.md
+docs/00_master/Claude.md
+*.docx
+rewrite_history.py

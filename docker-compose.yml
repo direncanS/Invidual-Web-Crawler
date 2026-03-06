@@ -1,0 +1,107 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+
+  demo_site:
+    image: nginx:alpine
+    ports:
+      - "8088:80"
+    volumes:
+      - ./demo_site:/usr/share/nginx/html:ro
+
+  external_site:
+    image: nginx:alpine
+    ports:
+      - "8089:80"
+    volumes:
+      - ./external_site:/usr/share/nginx/html:ro
+
+  backend:
+    build:
+      context: ./Backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app@db:5432/app
+      JWT_SECRET: change_me
+      JWT_EXPIRES_SECONDS: "86400"
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: no-reply@local.test
+      RESET_TOKEN_TTL_SECONDS: "60"
+      STORAGE_ROOT: /data
+      MAX_PAGES_PER_JOB: "200"
+      REQUEST_TIMEOUT_SECONDS: "10"
+      RATE_LIMIT_SECONDS: "0.5"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CORS_ORIGINS: "http://localhost:3000"
+    volumes:
+      - app_data:/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./Backend
+    command: ["bash", "-lc", "exec celery -A app.core.celery_app:celery worker -l INFO"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app@db:5432/app
+      JWT_SECRET: change_me
+      JWT_EXPIRES_SECONDS: "86400"
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: no-reply@local.test
+      RESET_TOKEN_TTL_SECONDS: "60"
+      STORAGE_ROOT: /data
+      MAX_PAGES_PER_JOB: "200"
+      REQUEST_TIMEOUT_SECONDS: "10"
+      RATE_LIMIT_SECONDS: "0.5"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - app_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  app_data:
